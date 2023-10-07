@@ -1,0 +1,129 @@
+
+
+```{r}
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(lubridate) # for date-time functions
+library(leaflet)   # for map plots
+library(RColorBrewer)
+library(scales)
+
+ui <- fluidPage(
+  tabsetPanel(
+    tabPanel("Interactive Time Series", plotlyOutput("interactive_time_series")),
+    tabPanel("Interactive Avg Daily Diff by Weekday", plotlyOutput("interactive_bar_plot")),
+    tabPanel("Interactive Boxplot by Station", plotlyOutput("interactive_box_plot")),
+    tabPanel("Interactive Histogram of Daily Diff", plotlyOutput("interactive_histogram")),
+    tabPanel("Heatmap of Counts by Day and Hour", plotOutput("heatmap_plot")),
+    tabPanel("Stacked Bar Plot for Weekdays vs. Weekends", plotOutput("stacked_bar_plot")),
+    tabPanel("Monthly Trend", plotOutput("monthly_trend_plot")),
+    tabPanel("Stations on Map", leafletOutput("stations_map"))
+  )
+)
+
+server <- function(input, output) {
+  # Interactive Time Series
+  output$interactive_time_series <- renderPlotly({
+    p <- ggplot(total_citi_bike_df, aes(x = date)) + 
+      geom_line(aes(y = startcount, color = "Start Count")) +
+      geom_line(aes(y = endcount, color = "End Count")) +
+      labs(y = "Count", title = "Time Series of Bike Counts (Select the area to zoom in)") +
+      theme_minimal()
+    
+    ggplotly(p, tooltip = c("y", "color"))
+  })
+
+  # Interactive Avg Daily Diff by Weekday
+  output$interactive_bar_plot <- renderPlotly({
+    avg_diff_by_weekday <- total_citi_bike_df %>%
+      group_by(weekday) %>%
+      summarise(avg_day_diff = mean(day_diff))
+    
+    p <- ggplot(avg_diff_by_weekday, aes(x = weekday, y = avg_day_diff)) + 
+      geom_bar(stat = "identity") +
+      labs(y = "Average Daily Difference", title = "Average Daily Difference by Weekday (Select the area to zoom in)") +
+      theme_minimal()
+    
+    ggplotly(p, tooltip = "y")
+  })
+
+  # Interactive Boxplot by Station
+  output$interactive_box_plot <- renderPlotly({
+    p <- ggplot(total_citi_bike_df, aes(x = factor(station_id), y = startcount)) +
+      geom_boxplot() +
+      labs(y = "Start Count", title = "Boxplot of Start Count by Station (Select the area to zoom in)") +
+      theme_minimal()
+    
+    ggplotly(p, tooltip = "y")
+  })
+
+  # Interactive Histogram of Daily Diff
+  output$interactive_histogram <- renderPlotly({
+    p <- ggplot(total_citi_bike_df, aes(x = day_diff)) +
+      geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7) +
+      labs(y = "Frequency", title = "Histogram of Daily Difference (Select the area to zoom in)") +
+      theme_minimal()
+    
+    ggplotly(p, tooltip = "count")
+  })
+
+  # Heatmap
+  output$heatmap_plot <- renderPlot({
+    total_citi_bike_df$hour <- as.factor(hour(total_citi_bike_df$date))
+    total_citi_bike_df$weekday <- factor(total_citi_bike_df$weekday,
+                                         levels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+    heatmap_data <- total_citi_bike_df %>%
+      group_by(weekday, hour) %>%
+      summarise(avg_count = mean(startcount))
+
+    ggplot(heatmap_data, aes(x = weekday, y = hour)) +
+      geom_tile(aes(fill = avg_count)) +
+      scale_fill_gradient(low = "white", high = "red") +
+      labs(title = "Average Start Count by Day and Hour", x = "Day of the Week", y = "Hour of the Day")
+  })
+
+  # Stacked Bar Plot
+  output$stacked_bar_plot <- renderPlot({
+    bar_data <- total_citi_bike_df %>%
+      mutate(day_type = ifelse(weekday %in% c("Saturday", "Sunday"), "Weekend", "Weekday")) %>%
+      group_by(date, day_type) %>%
+      summarise(total_count = sum(startcount))
+
+    ggplot(bar_data, aes(x = date, y = total_count, fill = day_type)) +
+      geom_bar(stat = "identity") +
+      labs(title = "Daily Start Count: Weekdays vs. Weekends")
+  })
+
+  # Monthly Trend
+  output$monthly_trend_plot <- renderPlot({
+    total_citi_bike_df$date <- as.Date(total_citi_bike_df$date)
+    trend_data <- total_citi_bike_df %>%
+      group_by(month = floor_date(date, unit = "month")) %>%
+      summarise(total_count = sum(startcount))
+
+    ggplot(trend_data, aes(x = month, y = total_count)) +
+      geom_line() +
+      labs(title = "Monthly Trend of Start Count")
+  })
+
+  # Stations on Map
+  output$stations_map <- renderLeaflet({
+    avg_counts <- total_citi_bike_df %>%
+      group_by(station_id, station_longitude, station_latitude) %>%
+      summarise(avg_count = mean(startcount))
+
+    leaflet(data = avg_counts) %>%
+      addTiles() %>%
+      addCircleMarkers(~station_longitude, ~station_latitude, radius = ~sqrt(avg_count), 
+                       popup = ~paste0("Station ID: ", station_id, "<br>Avg Count: ", round(avg_count, 2)))
+  })
+  
+}
+
+shinyApp(ui, server)
+
+```
+
