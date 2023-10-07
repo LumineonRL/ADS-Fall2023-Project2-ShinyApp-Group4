@@ -1,0 +1,17 @@
+```{r}
+library(httr)
+library(jsonlite)
+```
+
+
+```{r}
+url = "https://www.fema.gov/api/open/v2/FimaNfipClaims"
+res = GET(url)
+data = fromJSON(rawToChar(res$content))
+head(data)
+```
+
+
+
+
+
