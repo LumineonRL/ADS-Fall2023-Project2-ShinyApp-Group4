@@ -11,7 +11,25 @@ data = fromJSON(rawToChar(res$content))
 head(data)
 ```
 
+```{r}
+getwd()
+```
+```{r}
+file_path = "/Users/dannylam/Desktop/GitHub/ADS-Fall2023-Project2-ShinyApp-Group4/data/FimaNfipClaims.csv"
+fima_data = read.csv(file_path)
+```
 
+```{r}
+head(fima_data)
+```
+```{r}
+cols = c('elevatedBuildingIndicator', 'elevationCertificateIndicator', 'elevationDifference', 'baseFloodElevation')
+sub_df = fima_data[, cols]
+summary(sub_df)
+dim(sub_df)
+```
+Notes: look at elevation difference with different factors and what that could mean because there are a lot of NA's in other columns
 
+Try to find another column that could correlate well with elevationDifference
 
 
