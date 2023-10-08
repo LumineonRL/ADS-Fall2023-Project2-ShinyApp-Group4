@@ -22,7 +22,7 @@ The **learning goals** for this project is:
 Term: Fall 2023
 
 + Team # 4
-+ **Projec title**: + Team members
++ Team members:
 	+ Wenhe Chen
 	+ Daniel Lam
 	+ Heze Ma
