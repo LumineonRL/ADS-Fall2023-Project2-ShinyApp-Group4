@@ -1,0 +1,26 @@
+---
+title: "Project 2"
+author: "Group 4"
+date: "2023-10-08"
+output: html_document
+runtime: shiny
+---
+
+```{r imports}
+library(magrittr)
+library(here)
+library(stringr)
+```
+
+```{r load_files, echo = FALSE, warning = FALSE, message = FALSE}
+source_files <- list.files(here("lib")) %>%
+  str_subset("\\.R$") %>%
+  str_c(here("lib"), "/", .)
+
+lapply(source_files, source)
+```
+
+```{r load data, warning = FALSE, message = FALSE}
+download_data()
+load_data()
+```
