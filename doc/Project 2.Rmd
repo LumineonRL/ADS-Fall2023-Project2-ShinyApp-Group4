@@ -6,7 +6,7 @@ output: html_document
 runtime: shiny
 ---
 
-```{r imports}
+```{r imports, echo = FALSE, warning = FALSE, message = FALSE}
 library(magrittr)
 library(here)
 library(stringr)
@@ -16,6 +16,22 @@ library(ggplot2)
 library(plotly)
 library(RColorBrewer)
 library(leaflet)
+library(forcats)
+library(leaflet.extras)
+library(mapview)
+library(leafsync)
+library(ggvis)
+library(shinydashboard)
+library(lubridate)
+library(pacman)
+library(zipcodeR)
+library(data.table)
+library(devtools)
+library(tigris)
+library(htmltools)
+library(rsconnect)
+
+
 ```
 
 ```{r load_files, echo = FALSE, warning = FALSE, message = FALSE}
@@ -48,6 +64,62 @@ claim_amounts_df <- claims_df %>%
   dplyr::filter(!rowSums(is.na(.)) > 0)
 ```
 
+```{r ui_title}
+ui_title <- function() {
+  fluidPage(
+    h1("Impacts on Disaster Insurance Claims")
+  )
+}
+```
+
+```{r ui_impacts}
+ui_filtered_plot <- function() {
+  fluidPage(
+    sidebarLayout(
+      position = "left",
+      sidebarPanel(
+        h3("Select a filter:", align = "left", style = "color:#045a8d"),
+        radioButtons(
+          "StackedBCFilter",
+          label = h3("Filter"),
+          choices = list(
+            "Flood Event" = 1,
+            "State" = 2,
+            "Original Construction Year" = 3
+          ),
+          selected = 1
+        )
+      ),
+      mainPanel(plotOutput("box"))
+    )
+  )
+}
+```
+
+```{r ui_map}
+
+ui_map <- fluidPage(
+    titlePanel("Geospatial Analysis of Flood across States"),
+    
+    sidebarLayout(
+        sidebarPanel(
+            selectInput("display", "Choose Display:",
+                        choices = c("Geographical Location of Flood","Claim Payouts vs Coverage Amount", 
+                                    "Cause of Damage")),
+            selectInput("year", "Select Year of Loss:",
+                        choices = c("All Years", sort(unique(claims_df$yearOfLoss))), 
+                        selected = "All Years"),
+            selectInput("state", "Select State:",
+                        choices = c("All States", sort(unique(claims_df$state))), 
+                        selected = "All States")  
+        ),
+        
+        mainPanel(
+            leafletOutput("map")
+        )
+    )
+)
+```
 
 ```{r ui_payout}
 ui_payout <- fluidPage(
@@ -76,6 +148,38 @@ ui_payout <- fluidPage(
     )
   )
 )
+```
+
+```{r ui_impacts}
+ui_impacts <-
+        tabPanel(
+            "Filtered Plot",fluidPage(
+              sidebarLayout(position = "left",
+                            sidebarPanel(h3("Select a filter:", align = "left", style="color:#045a8d"),
+                                         radioButtons("StackedBCFilter", 
+                                                      label = h3("Filter"), 
+                                                      choices = list("Flood Event" = 1,
+                                                                     "State" = 2, 
+                                                                     "Original Construction Year" = 3), 
+                                                      selected = 1)),
+                            mainPanel(plotOutput("box"))))
+        )
+```
+
+```{r ui_references}
+ui_references <- function() {
+          tabPanel(
+          "References",
+            tags$h2("Data Sources"),
+            tags$a(href = "https://www.fema.gov/about/openfema/data-sets",
+                "OpenFEMA Data Set"),
+            tags$h2("Contributors"),
+            tags$p("Wenhe Chen"), tags$p("Daniel Lam"), tags$p("Heze Ma"), tags$p("Shreya Verma"), tags$p("Michael Wiley"),
+            tags$h2("GitHub Repository"),
+            tags$a(href = "https://github.com/LumineonRL/ADS-Fall2023-Project2-ShinyApp-Group4",
+                "https://github.com/LumineonRL/ADS-Fall2023-Project2-ShinyApp-Group4")
+        )
+}
 ```
 
 ```{r server_payout}
@@ -132,31 +236,6 @@ server_payout <- function(input, output) {
 
 ```
 
-
-```{r ui_map}
-
-ui_map <- fluidPage(
-    titlePanel("Geospatial Analysis of Flood across States"),
-    
-    sidebarLayout(
-        sidebarPanel(
-            selectInput("display", "Choose Display:",
-                        choices = c("Geographical Location of Flood","Claim Payouts vs Coverage Amount", 
-                                    "Cause of Damage")),
-            selectInput("year", "Select Year of Loss:",
-                        choices = c("All Years", sort(unique(claims_df$yearOfLoss))), 
-                        selected = "All Years"),
-            selectInput("state", "Select State:",
-                        choices = c("All States", sort(unique(claims_df$state))), 
-                        selected = "All States")  
-        ),
-        
-        mainPanel(
-            leafletOutput("map")
-        )
-    )
-)
-```
 
 ```{r server_map}
 server_map <- function(input, output) {
@@ -228,19 +307,85 @@ server_map <- function(input, output) {
 }
 ```
 
+
+```{r server_impacts}
+server_impacts <- function(input, output, session) {
+  #Data Processing: Extract year of original construction
+  claims_df$originalConstructionDate <- as.Date(claims_df$originalConstructionDate)
+  claims_df$originalConstructionYear <- as.numeric(format(claims_df$originalConstructionDate, "%Y"))
+  #Data Processing: Extracting category of Flood Event
+  claims_df = claims_df %>%
+    mutate(floodEventType = case_when(grepl("hurricane", tolower(floodEvent)) ~ "Hurricane",
+                                      grepl("storm", tolower(floodEvent)) ~ "Storm",
+                                      grepl("storms", tolower(floodEvent)) ~ "Storm",
+                                      grepl("blizzard", tolower(floodEvent)) ~ "Storm",
+                                      grepl("flooding", tolower(floodEvent)) ~ "Flood",
+                                      grepl("rain", tolower(floodEvent)) ~ "Rain",
+                                      grepl("rains", tolower(floodEvent)) ~ "Rain",
+                                      .default = "Other"))
+    # ========================== stacked bar chart ===========================
+    rv <- reactiveValues(update = 0)
+    observeEvent(input$StackedBCFilter, {
+        rv$update <- input$StackedBCFilter
+    })
+    
+    output$box <- renderPlot({
+        library(tidyverse)
+        rv$update
+        
+        if(rv$update == 3) { #Original Construction Year
+          claims_df %>%
+                count(originalConstructionYear) %>%
+                arrange(desc(n)) %>%
+                ggplot(aes(x = originalConstructionYear, y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "lightgreen", high = "darkgreen") +
+                ylab("Total") +
+                xlab("Original Construction Year") +
+                labs(title="Flood insurance records by Original Construction Year")
+        } else if (rv$update == 2){ #State
+            claims_df %>%
+                count(state) %>%
+                arrange(desc(n)) %>%
+                top_n(15) %>%
+                ggplot(aes(x = reorder(state, -n), y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "skyblue", high = "darkblue") +
+                ylab("Total") +
+                xlab("State") +
+                labs(title = "Flood insurance records by State")
+        } else if (rv$update == 1){ #Flood Event
+            claims_df %>%
+                count(floodEventType) %>%
+                arrange(desc(n)) %>%
+                ggplot(aes(x = floodEventType, y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "palevioletred", high = "orchid4") +
+                ylab("Total") +
+                xlab("Flood Event") +
+                labs(title="Flood insurance records by Flood Event")
+        }
+    })
+}
+```
+
 ```{r add_tabs}
 ui <- fluidPage(
   titlePanel("Shiny App"),
   
   tabsetPanel(
+    tabPanel("Title", ui_title()),
     tabPanel("Payout", ui_payout),
-    tabPanel("Map", ui_map)
+    tabPanel("Map", ui_map),
+    tabPanel("Impacts", ui_impacts),
+    tabPanel("References", ui_references())
   )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   server_payout(input, output)
   server_map(input, output)
+  server_impacts(input, output, session)
 }
 ```
 
