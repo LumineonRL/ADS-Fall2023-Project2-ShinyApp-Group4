@@ -8,7 +8,7 @@ library(jsonlite)
 url = "https://www.fema.gov/api/open/v2/FimaNfipClaims"
 res = GET(url)
 data = fromJSON(rawToChar(res$content))
-head(data)
+df = data$FimaNfipClaims
 ```
 
 ```{r}
@@ -31,5 +31,83 @@ dim(sub_df)
 Notes: look at elevation difference with different factors and what that could mean because there are a lot of NA's in other columns
 
 Try to find another column that could correlate well with elevationDifference
+
+look at amount paid on building claim
+
+```{r}
+cols = c('elevationDifference', 'baseFloodElevation', 'amountPaidOnBuildingClaim', 'buildingDamageAmount')
+graph_data = df[, cols]
+```
+
+```{r}
+library(ggplot2)
+ggplot(graph_data, aes(x = graph_data$baseFloodElevation, y = graph_data$buildingDamageAmount)) +
+  geom_point() +  # Add points
+  labs(
+    title = "Claim paid vs Elevation Difference",
+    x = "Elevation Difference",
+    y = "Claim Payment"
+  )
+
+
+```
+
+plan: make a shiny interactive scatter plot where you can change the x, y axis and the color as well
+
+x axis: elevation metric
+
+y axis: claim and money related metrics
+
+color: groupings - disaster type etc
+
+```{r}
+library(shiny)
+
+x_choices = c('elevationDifference', 'baseFloodElevation')
+y_choices = c('amountPaidOnBuildingClaim', 'buildingDamageAmount')
+# Define the UI for the Shiny app
+ui <- fluidPage(
+  titlePanel("Interactive Scatter Plot"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("xvar", "X-axis Variable", choices = x_choices),
+      selectInput("yvar", "Y-axis Variable", choices = y_choices)
+    ),
+    
+    mainPanel(
+      plotOutput("scatterplot")
+    )
+  )
+)
+
+# Define the server logic
+server <- function(input, output) {
+  output$scatterplot <- renderPlot({
+    # Create a scatter plot based on user inputs
+    ggplot(graph_data, aes_string(x = input$xvar, y = input$yvar)) +
+      geom_point() +
+      labs(
+        title = "Interactive Scatter Plot",
+        x = input$xvar,
+        y = input$yvar
+      )
+  })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+
+```
+
+
+
+
+
+
+
+
+
+
 
 
