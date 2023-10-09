@@ -18,7 +18,7 @@ The **learning goals** for this project is:
 
 *The above general statement about project 2 can be removed once you are finished with your project. It is optional.
 
-## Project Title Impacts on Disaster Insurance Claims
+## Project Title: Impacts on Disaster Insurance Claims
 Term: Fall 2023
 
 + Team # 4
