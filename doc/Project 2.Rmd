@@ -6,10 +6,32 @@ output: html_document
 runtime: shiny
 ---
 
-```{r imports}
+```{r imports, echo = FALSE, warning = FALSE, message = FALSE}
 library(magrittr)
 library(here)
 library(stringr)
+library(dplyr)
+library(shiny)
+library(ggplot2)
+library(plotly)
+library(RColorBrewer)
+library(leaflet)
+library(forcats)
+library(leaflet.extras)
+library(mapview)
+library(leafsync)
+library(ggvis)
+library(shinydashboard)
+library(lubridate)
+library(pacman)
+library(zipcodeR)
+library(data.table)
+library(devtools)
+library(tigris)
+library(htmltools)
+library(rsconnect)
+
+
 ```
 
 ```{r load_files, echo = FALSE, warning = FALSE, message = FALSE}
@@ -20,7 +42,353 @@ source_files <- list.files(here("lib")) %>%
 lapply(source_files, source)
 ```
 
-```{r load data, warning = FALSE, message = FALSE}
+```{r load_data, warning = FALSE, message = FALSE}
 download_data()
 load_data()
+```
+
+```{r claim amount filter}
+claim_amounts_df <- claims_df %>%
+  dplyr::select(amountPaidOnBuildingClaim,
+                amountPaidOnContentsClaim,
+                amountPaidOnIncreasedCostOfComplianceClaim,
+                totalBuildingInsuranceCoverage,
+                totalContentsInsuranceCoverage,
+                yearOfLoss,
+                buildingDamageAmount,
+                buildingDeductibleCode,
+                netBuildingPaymentAmount,
+                buildingPropertyValue,
+                causeOfDamage
+                ) %>%
+  dplyr::filter(!rowSums(is.na(.)) > 0)
+```
+
+```{r ui_title}
+ui_title <- function() {
+  fluidPage(
+    h1("Impacts on Disaster Insurance Claims")
+  )
+}
+```
+
+```{r ui_impacts}
+ui_filtered_plot <- function() {
+  fluidPage(
+    sidebarLayout(
+      position = "left",
+      sidebarPanel(
+        h3("Select a filter:", align = "left", style = "color:#045a8d"),
+        radioButtons(
+          "StackedBCFilter",
+          label = h3("Filter"),
+          choices = list(
+            "Flood Event" = 1,
+            "State" = 2,
+            "Original Construction Year" = 3
+          ),
+          selected = 1
+        )
+      ),
+      mainPanel(plotOutput("box"))
+    )
+  )
+}
+```
+
+```{r ui_map}
+
+ui_map <- fluidPage(
+    titlePanel("Geospatial Analysis of Flood across States"),
+    
+    sidebarLayout(
+        sidebarPanel(
+            selectInput("display", "Choose Display:",
+                        choices = c("Geographical Location of Flood","Claim Payouts vs Coverage Amount", 
+                                    "Cause of Damage")),
+            selectInput("year", "Select Year of Loss:",
+                        choices = c("All Years", sort(unique(claims_df$yearOfLoss))), 
+                        selected = "All Years"),
+            selectInput("state", "Select State:",
+                        choices = c("All States", sort(unique(claims_df$state))), 
+                        selected = "All States")  
+        ),
+        
+        mainPanel(
+            leafletOutput("map")
+        )
+    )
+)
+```
+
+```{r ui_payout}
+ui_payout <- fluidPage(
+  titlePanel("Claim Amounts"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("year_of_loss", "Year of Loss:",
+                  min = min(claim_amounts_df$yearOfLoss),
+                  max = max(claim_amounts_df$yearOfLoss),
+                  value = c(min(claim_amounts_df$yearOfLoss), max(claim_amounts_df$yearOfLoss)),
+                  step = 1),
+      
+      selectInput("deductible_code", "Building Deductible Code:",
+                  choices = unique(claim_amounts_df$buildingDeductibleCode),
+                  selected = NULL),
+      
+      selectInput("cause_of_damage", "Cause of Damage:",
+                  choices = unique(claim_amounts_df$causeOfDamage),
+                  selected = NULL)
+    ),
+    
+    mainPanel(
+      plotlyOutput("claim_plot1"),
+      plotlyOutput("claim_plot2")
+    )
+  )
+)
+```
+
+```{r ui_impacts}
+ui_impacts <-
+        tabPanel(
+            "Filtered Plot",fluidPage(
+              sidebarLayout(position = "left",
+                            sidebarPanel(h3("Select a filter:", align = "left", style="color:#045a8d"),
+                                         radioButtons("StackedBCFilter", 
+                                                      label = h3("Filter"), 
+                                                      choices = list("Flood Event" = 1,
+                                                                     "State" = 2, 
+                                                                     "Original Construction Year" = 3), 
+                                                      selected = 1)),
+                            mainPanel(plotOutput("box"))))
+        )
+```
+
+```{r ui_references}
+ui_references <- function() {
+          tabPanel(
+          "References",
+            tags$h2("Data Sources"),
+            tags$a(href = "https://www.fema.gov/about/openfema/data-sets",
+                "OpenFEMA Data Set"),
+            tags$h2("Contributors"),
+            tags$p("Wenhe Chen"), tags$p("Daniel Lam"), tags$p("Heze Ma"), tags$p("Shreya Verma"), tags$p("Michael Wiley"),
+            tags$h2("GitHub Repository"),
+            tags$a(href = "https://github.com/LumineonRL/ADS-Fall2023-Project2-ShinyApp-Group4",
+                "https://github.com/LumineonRL/ADS-Fall2023-Project2-ShinyApp-Group4")
+        )
+}
+```
+
+```{r server_payout}
+server_payout <- function(input, output) {
+  
+  filtered_df <- reactive({
+    claim_amounts_df %>%
+      filter(yearOfLoss >= input$year_of_loss[1],
+             yearOfLoss <= input$year_of_loss[2],
+             buildingDeductibleCode %in% input$deductible_code,
+             causeOfDamage %in% input$cause_of_damage)
+  })
+  
+  output$claim_plot1 <- renderPlotly({
+    n_colors <- length(unique(filtered_df()$yearOfLoss))
+    colors <- colorRampPalette(brewer.pal(n_colors, "Set1"))(n_colors)
+    
+    ggplotly(
+      ggplot(filtered_df(), aes(x = amountPaidOnBuildingClaim, y = amountPaidOnContentsClaim, 
+                                text = paste("Building Claim: ", amountPaidOnBuildingClaim, "<br>Contents Claim: ", amountPaidOnContentsClaim),
+                                color = as.factor(yearOfLoss),
+                                shape = as.factor(buildingDeductibleCode),
+                                size = as.factor(causeOfDamage))) +
+        geom_point() +
+        xlab("Amount Paid on Building Claim") +
+        ylab("Amount Paid on Contents Claim") +
+        scale_color_manual(values = colors) +
+        scale_shape_manual(values = c(16, 17, 18, 19, 20)) +
+        scale_size_manual(values = c(1, 2, 3, 4, 5))
+    ) %>% 
+      layout(hoverlabel = list(bgcolor = "white", font = list(size = 12)))
+  })
+  
+  output$claim_plot2 <- renderPlotly({
+    n_colors <- length(unique(filtered_df()$yearOfLoss))
+    colors <- colorRampPalette(brewer.pal(n_colors, "Set1"))(n_colors)
+    
+    ggplotly(
+      ggplot(filtered_df(), aes(x = totalBuildingInsuranceCoverage, y = totalContentsInsuranceCoverage, 
+                                text = paste("Building Coverage: ", totalBuildingInsuranceCoverage, "<br>Contents Coverage: ", totalContentsInsuranceCoverage),
+                                color = as.factor(yearOfLoss),
+                                shape = as.factor(buildingDeductibleCode),
+                                size = as.factor(causeOfDamage))) +
+        geom_point() +
+        xlab("Total Building Insurance Coverage") +
+        ylab("Total Contents Insurance Coverage") +
+        scale_color_manual(values = colors) +
+        scale_shape_manual(values = c(16, 17, 18, 19, 20)) +
+        scale_size_manual(values = c(1, 2, 3, 4, 5))
+    ) %>% 
+      layout(hoverlabel = list(bgcolor = "white", font = list(size = 12)))
+  })
+}
+
+```
+
+
+```{r server_map}
+server_map <- function(input, output) {
+    
+    # Define the mapping for cause of damage
+    cause_mapping <- c(
+        "0" = "Other causes",
+        "1" = "Tidal water overflow",
+        "2" = "Stream, river, or lake overflow",
+        "3" = "Alluvial fan overflow",
+        "4" = "Accumulation of rainfall or snowmelt",
+        "7" = "Erosion-demolition",
+        "8" = "Erosion-removal",
+        "9" = "Earth movement, landslide, land subsidence, sinkholes, etc.",
+        "A" = "Closed basin lake",
+        "B" = "Expedited claim handling process without site inspection",
+        "C" = "Expedited claim handling process follow-up site inspection",
+        "D" = "Expedited claim handling process by Adjusting Process Pilot Program (Remote Adjustment)"
+    )
+    
+    output$map <- renderLeaflet({
+        # Start filtering from the full claims_dfset
+        filtered_claims_df <- claims_df
+        
+        if (input$year != "All Years") {
+            filtered_claims_df <- subset(filtered_claims_df, yearOfLoss == input$year)
+        }
+        if (input$state != "All States") {
+            filtered_claims_df <- subset(filtered_claims_df, state == input$state)
+        }
+        
+        m <- leaflet(data = filtered_claims_df) %>%
+            addTiles() %>%
+            setView(lng = -98.35, lat = 39.50, zoom = 4)
+        
+        if(input$display == "Claim Payouts vs Coverage Amount") {
+            # Assuming "amountPaidOnBuildingClaim" as claim payouts and "totalBuildingInsuranceCoverage" as coverage amount
+            ratio <- filtered_claims_df$amountPaidOnBuildingClaim / filtered_claims_df$totalBuildingInsuranceCoverage
+            pal <- colorQuantile("YlGnBu", ratio, n = 5)
+            m <- addCircleMarkers(m, ~longitude, ~latitude, 
+                                   color = ~pal(ratio),
+                                   radius = 3, 
+                                   fillOpacity = 0.5,
+                                   popup = ~paste("Payout/Coverage Ratio:", round(ratio, 2)))
+        } else if(input$display == "Geographical Location of Flood") {
+            m <- addCircleMarkers(m, ~longitude, ~latitude, 
+                                   color = "red", 
+                                   radius = 3, 
+                                   fillOpacity = 0.5,
+                                   popup = ~paste("Longitude:", longitude, "<br>Latitude:", latitude))
+  
+        } else if(input$display == "Cause of Damage") {
+            pal <- colorFactor("Set1", levels(filtered_claims_df$causeOfDamage))
+            m <- addCircleMarkers(m, ~longitude, ~latitude, 
+                                   color = ~pal(causeOfDamage),
+                                   radius = 3, 
+                                   fillOpacity = 0.5,
+                                   popup = ~paste("Cause:", cause_mapping[as.character(causeOfDamage)]))
+        } else {
+            m <- addCircleMarkers(m, ~longitude, ~latitude, 
+                                   color = "red", 
+                                   radius = 3, 
+                                   fillOpacity = 0.5,
+                                   popup = ~paste("Longitude:", longitude, "<br>Latitude:", latitude))
+        }
+        
+        m
+    })
+}
+```
+
+
+```{r server_impacts}
+server_impacts <- function(input, output, session) {
+  #Data Processing: Extract year of original construction
+  claims_df$originalConstructionDate <- as.Date(claims_df$originalConstructionDate)
+  claims_df$originalConstructionYear <- as.numeric(format(claims_df$originalConstructionDate, "%Y"))
+  #Data Processing: Extracting category of Flood Event
+  claims_df = claims_df %>%
+    mutate(floodEventType = case_when(grepl("hurricane", tolower(floodEvent)) ~ "Hurricane",
+                                      grepl("storm", tolower(floodEvent)) ~ "Storm",
+                                      grepl("storms", tolower(floodEvent)) ~ "Storm",
+                                      grepl("blizzard", tolower(floodEvent)) ~ "Storm",
+                                      grepl("flooding", tolower(floodEvent)) ~ "Flood",
+                                      grepl("rain", tolower(floodEvent)) ~ "Rain",
+                                      grepl("rains", tolower(floodEvent)) ~ "Rain",
+                                      .default = "Other"))
+    # ========================== stacked bar chart ===========================
+    rv <- reactiveValues(update = 0)
+    observeEvent(input$StackedBCFilter, {
+        rv$update <- input$StackedBCFilter
+    })
+    
+    output$box <- renderPlot({
+        library(tidyverse)
+        rv$update
+        
+        if(rv$update == 3) { #Original Construction Year
+          claims_df %>%
+                count(originalConstructionYear) %>%
+                arrange(desc(n)) %>%
+                ggplot(aes(x = originalConstructionYear, y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "lightgreen", high = "darkgreen") +
+                ylab("Total") +
+                xlab("Original Construction Year") +
+                labs(title="Flood insurance records by Original Construction Year")
+        } else if (rv$update == 2){ #State
+            claims_df %>%
+                count(state) %>%
+                arrange(desc(n)) %>%
+                top_n(15) %>%
+                ggplot(aes(x = reorder(state, -n), y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "skyblue", high = "darkblue") +
+                ylab("Total") +
+                xlab("State") +
+                labs(title = "Flood insurance records by State")
+        } else if (rv$update == 1){ #Flood Event
+            claims_df %>%
+                count(floodEventType) %>%
+                arrange(desc(n)) %>%
+                ggplot(aes(x = floodEventType, y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "palevioletred", high = "orchid4") +
+                ylab("Total") +
+                xlab("Flood Event") +
+                labs(title="Flood insurance records by Flood Event")
+        }
+    })
+}
+```
+
+```{r add_tabs}
+ui <- fluidPage(
+  titlePanel("Shiny App"),
+  
+  tabsetPanel(
+    tabPanel("Title", ui_title()),
+    tabPanel("Payout", ui_payout),
+    tabPanel("Map", ui_map),
+    tabPanel("Impacts", ui_impacts),
+    tabPanel("References", ui_references())
+  )
+)
+
+server <- function(input, output, session) {
+  server_payout(input, output)
+  server_map(input, output)
+  server_impacts(input, output, session)
+}
+```
+
+```{r run_app}
+shinyApp(ui = ui, server = server)
 ```
