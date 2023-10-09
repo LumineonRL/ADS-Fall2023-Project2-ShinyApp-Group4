@@ -1,0 +1,202 @@
+---
+title: "Analysis"
+output: html_document
+date: "2023-10-08"
+---
+
+```{r}
+library(httr)
+library(jsonlite)
+url = "https://www.fema.gov/api/open/v2/FimaNfipClaims"
+res = GET(url)
+data = fromJSON(rawToChar(res$content))
+claims_df = data$FimaNfipClaims
+colnames(claims_df)
+head(claims_df)
+```
+
+
+```{r}
+# This is the server logic of a Shiny web application. You can run the application by clicking 'Run App' above.
+# Find out more about building applications with Shiny here: http://shiny.rstudio.com/
+###############################Install Related Packages #######################
+library(httr)
+library(jsonlite)
+library(forcats)
+if (!require("shiny")) {
+    install.packages("shiny")
+    library(shiny)
+}
+if (!require("leaflet")) {
+    install.packages("leaflet")
+    library(leaflet)
+}
+if (!require("leaflet.extras")) {
+    install.packages("leaflet.extras")
+    library(leaflet.extras)
+}
+if (!require("dplyr")) {
+    install.packages("dplyr")
+    library(dplyr)
+}
+if (!require("magrittr")) {
+    install.packages("magrittr")
+    library(magrittr)
+}
+if (!require("mapview")) {
+    install.packages("mapview")
+    library(mapview)
+}
+if (!require("leafsync")) {
+    install.packages("leafsync")
+    library(leafsync)
+}
+if (!require("ggplot2")) {
+    install.packages("ggplot2")
+    library(ggplot2)
+}
+if (!require("ggvis")) {
+    install.packages("ggvis")
+    library(ggvis)
+}
+if (!require("shinydashboard")) {
+    install.packages("shinydashboard")
+    library(shinydashboard)
+}
+if (!require("lubridate")) {
+    install.packages("lubridate")
+    library(lubridate)
+}
+if (!require("tidyverse")) {
+    install.packages("tidyverse")
+    library(tidyverse)
+}
+if (!require("pacman")) {
+    install.packages("pacman")
+    library(pacman)
+}
+if (!require("zipcodeR")) {
+    install.packages("zipcodeR")
+    library(zipcodeR)
+}
+if (!require("data.table")) {
+    install.packages("data.table")
+    library(data.table)
+}
+if (!require("devtools")) {
+    install.packages("devtools")
+    library(devtools)
+}
+if (!require("tigris")) {
+    install.packages("tigris")
+    library(tigris)
+}
+if (!require("htmltools")) {
+    install.packages("htmltools")
+    library(htmltools)
+}
+if (!require("rsconnect")) {
+    install.packages("rsconnect")
+    library(rsconnect)
+}
+
+#===============================================Shiny UI=========================================================
+ui <- navbarPage(
+        #################### tab 1 ####################
+        tabPanel("Impacts on Disaster Insurance Claims"),
+        #################### tab 2 ####################
+        tabPanel(
+            "Filtered Plot",fluidPage(
+              sidebarLayout(position = "left",
+                            sidebarPanel(h3("Select a filter:", align = "left", style="color:#045a8d"),
+                                         radioButtons("StackedBCFilter", 
+                                                      label = h3("Filter"), 
+                                                      choices = list("Flood Event" = 1,
+                                                                     "State" = 2, 
+                                                                     "Original Construction Year" = 3), 
+                                                      selected = 1)),
+                            mainPanel(plotOutput("box"))))
+        ),
+        #################### tab 3 ####################
+        tabPanel(
+          "References",
+            tags$h2("Data Sources"),
+            tags$a(href = "https://www.fema.gov/about/openfema/data-sets",
+                "OpenFEMA Data Set"),
+            tags$h2("Contributors"),
+            tags$p("Wenhe Chen"), tags$p("Daniel Lam"), tags$p("Heze Ma"), tags$p("Shreya Verma"), tags$p("Michael Wiley"),
+            tags$h2("GitHub Repository"),
+            tags$a(href = "https://github.com/LumineonRL/ADS-Fall2023-Project2-ShinyApp-Group4",
+                "https://github.com/LumineonRL/ADS-Fall2023-Project2-ShinyApp-Group4")
+        )
+) # end of ui
+
+#===============================================Shiny SERVER=====================================================
+# LOAD AND PREPARE DATA ####################################
+
+shinyServer <- function(input, output, session) {
+  url = "https://www.fema.gov/api/open/v2/FimaNfipClaims"
+  res = GET(url)
+  data = fromJSON(rawToChar(res$content))
+  claims_df = data$FimaNfipClaims
+  #Data Processing: Extract year of original construction
+  claims_df$originalConstructionDate <- as.Date(claims_df$originalConstructionDate)
+  claims_df$originalConstructionYear <- as.numeric(format(claims_df$originalConstructionDate, "%Y"))
+  #Data Processing: Extracting category of Flood Event
+  claims_df = claims_df %>%
+    mutate(floodEventType = case_when(grepl("hurricane", tolower(floodEvent)) ~ "Hurricane",
+                                      grepl("storm", tolower(floodEvent)) ~ "Storm",
+                                      grepl("storms", tolower(floodEvent)) ~ "Storm",
+                                      grepl("blizzard", tolower(floodEvent)) ~ "Storm",
+                                      grepl("flooding", tolower(floodEvent)) ~ "Flood",
+                                      grepl("rain", tolower(floodEvent)) ~ "Rain",
+                                      grepl("rains", tolower(floodEvent)) ~ "Rain",
+                                      .default = "Other"))
+    # ========================== stacked bar chart ===========================
+    rv <- reactiveValues(update = 0)
+    observeEvent(input$StackedBCFilter, {
+        rv$update <- input$StackedBCFilter
+    })
+    
+    output$box <- renderPlot({
+        library(tidyverse)
+        rv$update
+        
+        if(rv$update == 3) { #Original Construction Year
+          claims_df %>%
+                count(originalConstructionYear) %>%
+                arrange(desc(n)) %>%
+                ggplot(aes(x = originalConstructionYear, y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "lightgreen", high = "darkgreen") +
+                ylab("Total") +
+                xlab("Original Construction Year") +
+                labs(title="Flood insurance records by Original Construction Year")
+        } else if (rv$update == 2){ #State
+            claims_df %>%
+                count(state) %>%
+                arrange(desc(n)) %>%
+                top_n(15) %>%
+                ggplot(aes(x = reorder(state, -n), y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "skyblue", high = "darkblue") +
+                ylab("Total") +
+                xlab("State") +
+                labs(title = "Flood insurance records by State")
+        } else if (rv$update == 1){ #Flood Event
+            claims_df %>%
+                count(floodEventType) %>%
+                arrange(desc(n)) %>%
+                ggplot(aes(x = floodEventType, y = n, fill = n)) +
+                geom_bar(stat = "identity") +
+                scale_fill_gradient(low = "palevioletred", high = "orchid4") +
+                ylab("Total") +
+                xlab("Flood Event") +
+                labs(title="Flood insurance records by Flood Event")
+        }
+    })
+}
+
+shiny::shinyApp(ui, shinyServer)
+
+```
