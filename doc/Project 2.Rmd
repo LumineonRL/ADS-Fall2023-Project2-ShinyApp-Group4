@@ -55,11 +55,16 @@ claim_amounts_df <- claims_df %>%
                 totalBuildingInsuranceCoverage,
                 totalContentsInsuranceCoverage,
                 yearOfLoss,
+                baseFloodElevation,
                 buildingDamageAmount,
                 buildingDeductibleCode,
+                elevationDifference,
+                lowestFloorElevation,
                 netBuildingPaymentAmount,
                 buildingPropertyValue,
-                causeOfDamage
+                causeOfDamage,
+                totalBuildingInsuranceCoverage,
+                occupancyType
                 ) %>%
   dplyr::filter(!rowSums(is.na(.)) > 0)
 ```
@@ -164,6 +169,25 @@ ui_impacts <-
                                                       selected = 1)),
                             mainPanel(plotOutput("box"))))
         )
+```
+
+```{r ui_elevation}
+ui_elevation <- 
+    tabPanel(
+      "Elevation Analysis",fluidPage(
+    titlePanel("Elevation Impact on Claims"),
+    sidebarLayout(
+      sidebarPanel(
+        selectInput("x_axis", "Elevation Metric", choices = c('elevationDifference', 'baseFloodElevation', 'lowestFloorElevation')),
+        selectInput("y_axis", "Claims Metric", choices = c('amountPaidOnBuildingClaim', 'buildingDamageAmount', 'totalBuildingInsuranceCoverage', 'netBuildingPaymentAmount')),
+        selectInput("color", "Building/Damage Type", choices = c('causeOfDamage', 'occupancyType'))
+      ),
+      mainPanel(
+        plotOutput("scatterplot")
+      )
+    )
+  )
+)
 ```
 
 ```{r ui_references}
@@ -369,6 +393,27 @@ server_impacts <- function(input, output, session) {
 }
 ```
 
+```{r server_elevation}
+server_elevation <- function(input, output, session) {
+  
+  # Reactive expression to filter data based on color selection
+  filtered_data <- reactive({
+    if (input$color == "None") {
+      return(graph_data)
+    } else {
+      return(graph_data[, c(input$x_axis, input$y_axis, input$color)])
+    }
+  })
+  
+  # Create the scatter plot
+  output$scatterplot <- renderPlot({
+    ggplot(filtered_data(), aes_string(x = input$x_axis, y = input$y_axis, color = input$color)) +
+      geom_point() +
+      labs(x = input$x_axis, y = input$y_axis, color = input$color)
+  })
+}
+```
+
 ```{r add_tabs}
 ui <- fluidPage(
   titlePanel("Shiny App"),
@@ -378,6 +423,7 @@ ui <- fluidPage(
     tabPanel("Payout", ui_payout),
     tabPanel("Map", ui_map),
     tabPanel("Impacts", ui_impacts),
+    tabPanel("Elevation", ui_elevation),
     tabPanel("References", ui_references())
   )
 )
@@ -386,6 +432,7 @@ server <- function(input, output, session) {
   server_payout(input, output)
   server_map(input, output)
   server_impacts(input, output, session)
+  server_elevation(input, output, session)
 }
 ```
 
