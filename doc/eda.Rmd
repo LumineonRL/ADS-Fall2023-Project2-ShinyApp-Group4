@@ -35,22 +35,10 @@ Try to find another column that could correlate well with elevationDifference
 look at amount paid on building claim
 
 ```{r}
-cols = c('elevationDifference', 'baseFloodElevation', 'amountPaidOnBuildingClaim', 'buildingDamageAmount')
+cols = c('elevationDifference', 'baseFloodElevation', 'amountPaidOnBuildingClaim', 'buildingDamageAmount','lowestFloorElevation', 'totalBuildingInsuranceCoverage', 'netBuildingPaymentAmount','occupancyType', 'causeOfDamage')
 graph_data = df[, cols]
 ```
 
-```{r}
-library(ggplot2)
-ggplot(graph_data, aes(x = graph_data$baseFloodElevation, y = graph_data$buildingDamageAmount)) +
-  geom_point() +  # Add points
-  labs(
-    title = "Claim paid vs Elevation Difference",
-    x = "Elevation Difference",
-    y = "Claim Payment"
-  )
-
-
-```
 
 plan: make a shiny interactive scatter plot where you can change the x, y axis and the color as well
 
@@ -62,41 +50,62 @@ color: groupings - disaster type etc
 
 ```{r}
 library(shiny)
+library(plotly)
+library(dplyr)
 
-x_choices = c('elevationDifference', 'baseFloodElevation')
-y_choices = c('amountPaidOnBuildingClaim', 'buildingDamageAmount')
-# Define the UI for the Shiny app
+x_choices = c('elevationDifference', 'baseFloodElevation', 'lowestFloorElevation')
+y_choices = c('amountPaidOnBuildingClaim', 'buildingDamageAmount', 'totalBuildingInsuranceCoverage', 'netBuildingPaymentAmount')
+color_choices = c('causeOfDamage', 'occupancyType')
+# Define the UI
 ui <- fluidPage(
   titlePanel("Interactive Scatter Plot"),
-  
   sidebarLayout(
     sidebarPanel(
-      selectInput("xvar", "X-axis Variable", choices = x_choices),
-      selectInput("yvar", "Y-axis Variable", choices = y_choices)
+      selectInput("x_axis", "X-Axis Variable", choices = x_choices),
+      selectInput("y_axis", "Y-Axis Variable", choices = y_choices),
+      selectInput("color", "Color Variable", choices = color_choices),
+      actionButton("reset", "Reset")
     ),
-    
     mainPanel(
       plotOutput("scatterplot")
     )
   )
 )
 
-# Define the server logic
-server <- function(input, output) {
+# Define the server
+server <- function(input, output, session) {
+  
+  # Reactive expression to filter data based on color selection
+  filtered_data <- reactive({
+    if (input$color == "None") {
+      return(graph_data)
+    } else {
+      return(graph_data[, c(input$x_axis, input$y_axis, input$color)])
+    }
+  })
+  
+  # Create the scatter plot
   output$scatterplot <- renderPlot({
-    # Create a scatter plot based on user inputs
-    ggplot(graph_data, aes_string(x = input$xvar, y = input$yvar)) +
+    ggplot(filtered_data(), aes_string(x = input$x_axis, y = input$y_axis, color = input$color)) +
       geom_point() +
-      labs(
-        title = "Interactive Scatter Plot",
-        x = input$xvar,
-        y = input$yvar
-      )
+      labs(x = input$x_axis, y = input$y_axis, color = input$color)
+  })
+  
+  # Reset button action
+  observeEvent(input$reset, {
+    updateSelectInput(session, "x_axis", selected = NULL)
+    updateSelectInput(session, "y_axis", selected = NULL)
+    updateSelectInput(session, "color", selected = "None")
   })
 }
 
 # Run the Shiny app
 shinyApp(ui, server)
+
+
+
+
+
 
 ```
 
