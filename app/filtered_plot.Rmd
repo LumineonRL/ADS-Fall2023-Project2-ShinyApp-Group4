@@ -99,7 +99,10 @@ if (!require("rsconnect")) {
     install.packages("rsconnect")
     library(rsconnect)
 }
+```
 
+
+```{r}
 #===============================================Shiny UI=========================================================
 ui <- navbarPage(
         #################### tab 1 ####################
@@ -135,10 +138,6 @@ ui <- navbarPage(
 # LOAD AND PREPARE DATA ####################################
 
 shinyServer <- function(input, output, session) {
-  url = "https://www.fema.gov/api/open/v2/FimaNfipClaims"
-  res = GET(url)
-  data = fromJSON(rawToChar(res$content))
-  claims_df = data$FimaNfipClaims
   #Data Processing: Extract year of original construction
   claims_df$originalConstructionDate <- as.Date(claims_df$originalConstructionDate)
   claims_df$originalConstructionYear <- as.numeric(format(claims_df$originalConstructionDate, "%Y"))
