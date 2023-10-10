@@ -87,5 +87,7 @@ source_files <- list.files(here("app")) %>%
 lapply(source_files, source)
 ```
 ```{r run_app, echo = FALSE, warning = FALSE, message = FALSE}
-shinyApp(ui = ui, server = server)
+app <- shinyApp(ui = ui, server = server)
+
+runApp(app)
 ```
