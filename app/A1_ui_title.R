@@ -1,5 +1,8 @@
 ui_title <- function() {
   fluidPage(
-    h1("Impacts on Disaster Insurance Claims")
+    includeCSS("styles.css"),
+    div(class = "title-container",
+        h1(class = "title-text", "Impacts on Disaster Insurance Claims")
+    )
   )
 }
