@@ -11,7 +11,7 @@ server_payout <- function(input, output) {
     
     # Create ggplot with fixed scale, colored points, and shaped points
     ggplot(filtered_df, aes(x = buildingDamageAmount, y = netBuildingPaymentAmount, color = is_coastal, shape = causeOfDamage)) +
-      geom_point(size = 3, aes(fill = is_coastal), stroke = 1) +
+      geom_point(size = 2, aes(fill = is_coastal), stroke = 1) +
       xlab("Building Damage Amount") +
       ylab("Net Building Payment Amount") +
       theme_minimal() +

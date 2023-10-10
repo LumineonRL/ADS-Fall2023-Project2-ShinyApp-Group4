@@ -72,18 +72,20 @@ claim_amounts_df <- claims_df %>%
                 ) %>%
   dplyr::filter(!rowSums(is.na(.)) > 0) %>%
   mutate(is_coastal = state %in% coastal_states,
-         payment_exceeds_damage = amountPaidOnBuildingClaim >= buildingDamageAmount0)
+         payment_exceeds_damage = amountPaidOnBuildingClaim >= buildingDamageAmount)
 ```
 
 Adds all of the ui and server files for the shiny app.
 Each individual component can be viewed in `/app`.
 ```{r load_app_files, echo = FALSE, warning = FALSE, message = FALSE}
+setwd(here("app"))
+
 source_files <- list.files(here("app")) %>%
   str_subset("\\.R$") %>%
   str_c(here("app"), "/", .)
 
 lapply(source_files, source)
 ```
-```{r run_app}
+```{r run_app, echo = FALSE, warning = FALSE, message = FALSE}
 shinyApp(ui = ui, server = server)
 ```
