@@ -55,16 +55,11 @@ claim_amounts_df <- claims_df %>%
                 totalBuildingInsuranceCoverage,
                 totalContentsInsuranceCoverage,
                 yearOfLoss,
-                baseFloodElevation,
                 buildingDamageAmount,
                 buildingDeductibleCode,
-                elevationDifference,
-                lowestFloorElevation,
                 netBuildingPaymentAmount,
                 buildingPropertyValue,
-                causeOfDamage,
-                totalBuildingInsuranceCoverage,
-                occupancyType
+                causeOfDamage
                 ) %>%
   dplyr::filter(!rowSums(is.na(.)) > 0)
 ```
@@ -399,9 +394,9 @@ server_elevation <- function(input, output, session) {
   # Reactive expression to filter data based on color selection
   filtered_data <- reactive({
     if (input$color == "None") {
-      return(graph_data)
+      return(claims_df)
     } else {
-      return(graph_data[, c(input$x_axis, input$y_axis, input$color)])
+      return(claims_df[, c(input$x_axis, input$y_axis, input$color)])
     }
   })
   
