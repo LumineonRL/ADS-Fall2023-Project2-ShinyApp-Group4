@@ -30,6 +30,7 @@ library(devtools)
 library(tigris)
 library(htmltools)
 library(rsconnect)
+library(shinyWidgets)
 ```
 
 Load in some helper functions to help download and load relevant data.
@@ -51,6 +52,10 @@ load_data()
 
 Some basic preprocessing to grab only the relevant columns and rows.
 ```{r claim_amount_filter}
+coastal_states <- c("ME", "NH", "MA", "RI", "CT", "NY", "NJ", "DE", "MD",
+                    "VA", "NC", "SC", "GA", "FL", "AL", "MS", "LA", "TX",
+                    "CA", "OR", "WA", "AK", "HI")
+
 claim_amounts_df <- claims_df %>%
   dplyr::select(amountPaidOnBuildingClaim,
                 amountPaidOnContentsClaim,
@@ -62,9 +67,12 @@ claim_amounts_df <- claims_df %>%
                 buildingDeductibleCode,
                 netBuildingPaymentAmount,
                 buildingPropertyValue,
-                causeOfDamage
+                causeOfDamage,
+                state
                 ) %>%
-  dplyr::filter(!rowSums(is.na(.)) > 0)
+  dplyr::filter(!rowSums(is.na(.)) > 0) %>%
+  mutate(is_coastal = state %in% coastal_states,
+         payment_exceeds_damage = amountPaidOnBuildingClaim >= buildingDamageAmount0)
 ```
 
 Adds all of the ui and server files for the shiny app.

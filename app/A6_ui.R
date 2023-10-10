@@ -1,5 +1,5 @@
 ui <- fluidPage(
-  titlePanel("Shiny App"),
+  titlePanel("Impacts on Disaster Insurance Claims"),
   
   tabsetPanel(
     tabPanel("Title", ui_title()),
@@ -9,4 +9,5 @@ ui <- fluidPage(
     tabPanel("References", ui_references())
   )
 )
+
 

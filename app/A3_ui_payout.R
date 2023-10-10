@@ -1,26 +1,31 @@
 ui_payout <- fluidPage(
   titlePanel("Claim Amounts"),
-  
   sidebarLayout(
     sidebarPanel(
-      sliderInput("year_of_loss", "Year of Loss:",
-                  min = min(claim_amounts_df$yearOfLoss),
-                  max = max(claim_amounts_df$yearOfLoss),
-                  value = c(min(claim_amounts_df$yearOfLoss), max(claim_amounts_df$yearOfLoss)),
-                  step = 1),
-      
-      selectInput("deductible_code", "Building Deductible Code:",
-                  choices = unique(claim_amounts_df$buildingDeductibleCode),
-                  selected = NULL),
-      
-      selectInput("cause_of_damage", "Cause of Damage:",
-                  choices = unique(claim_amounts_df$causeOfDamage),
-                  selected = NULL)
+      checkboxGroupInput("coastal_filter", label = "Include Coastal Data",
+                         choices = c("Include Coastal" = TRUE, "Exclude Coastal" = FALSE),
+                         selected = c(TRUE, FALSE)),
+      checkboxGroupInput("payment_filter", label = "Payment Exceeds Damage",
+                         choices = c("Exceeds Damage" = TRUE, "Does Not Exceed Damage" = FALSE),
+                         selected = c(TRUE, FALSE)),
+      checkboxGroupButtons(
+        inputId = "cause_filter",
+        label = "Cause of Damage",
+        choices = unique(claim_amounts_df$causeOfDamage),
+        selected = unique(claim_amounts_df$causeOfDamage),
+        direction = "vertical",
+        justified = TRUE,
+        size = "sm",
+        individual = TRUE,
+        width = "100%",
+        checkIcon = list(
+          yes = icon("check"),
+          no = icon("square")
+        )
+      )
     ),
-    
     mainPanel(
-      plotlyOutput("claim_plot1"),
-      plotlyOutput("claim_plot2")
+      plotlyOutput("claim_plot")
     )
   )
 )
