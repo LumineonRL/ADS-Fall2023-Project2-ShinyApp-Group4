@@ -124,7 +124,7 @@ ui <- navbarPage(
         tabPanel(
           "References",
             tags$h2("Data Sources"),
-            tags$a(href = "https://www.fema.gov/about/openfema/data-sets",
+            tags$a(href = "https://www.fema.gov/openfema-data-page/fima-nfip-redacted-claims-v2",
                 "OpenFEMA Data Set"),
             tags$h2("Contributors"),
             tags$p("Wenhe Chen"), tags$p("Daniel Lam"), tags$p("Heze Ma"), tags$p("Shreya Verma"), tags$p("Michael Wiley"),
