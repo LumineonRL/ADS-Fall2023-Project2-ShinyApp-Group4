@@ -21,7 +21,7 @@ The **learning goals** for this project is:
 - systems development/design life cycle
 - shiny app/shiny server
 
-## Project Title: Strategic Response of the Insurance Industry to Flood Risk
+## Project Title: Impact of Flood Insurance Claims
 Term: Fall 2023
 
 + Team # 4
