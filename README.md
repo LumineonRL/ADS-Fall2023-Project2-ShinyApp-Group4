@@ -37,7 +37,7 @@ Term: Fall 2023
 + **Contribution statement**: 
 	In general, each of our coding contributions can be found in this repository's [commit log](https://github.com/LumineonRL/ADS-Fall2023-Project2-ShinyApp-Group4/commits/master).
 
-	+ Wenhe Chen: Revised and improved README section readability, completeness, and reasonableness. Designed and completed a complex Geospatial Analysis of Floods across States with Heze.
+	+ Wenhe Chen: Revised and improved the README section's readability, completeness, and reasonableness. Designed and completed a complex Geospatial Analysis of Floods across States with Heze.
 	+ Daniel Lam:
 	+ Heze Ma:
 	+ Shreya Verma: Developed the `Impacts` and `References` tab of app. Did ETL to extract, transform and load the data to do EDA and build interesting visualizations. This also involved data wrangling and processing. Contributed to building the Shiny UI and Server and general code cleanup.
