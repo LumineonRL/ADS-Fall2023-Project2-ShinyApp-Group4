@@ -50,7 +50,8 @@ download_data()
 load_data()
 ```
 
-Some basic preprocessing to grab only the relevant columns and rows.
+Some basic preprocessing to grab only the relevant columns and rows for the
+information that will be used in the "Insurance Claims Payouts" tab.
 ```{r claim_amount_filter}
 coastal_states <- c("ME", "NH", "MA", "RI", "CT", "NY", "NJ", "DE", "MD",
                     "VA", "NC", "SC", "GA", "FL", "AL", "MS", "LA", "TX",
@@ -84,6 +85,31 @@ claim_amounts_df <- claims_df %>%
 # Only values with entries in the dataset were used.
 ```
 
+Further pre-processing for data that will be used in the "Elevation" tab.
+```{r}
+claim_elevation_df <- claims_df %>%
+  dplyr::select(elevationDifference,
+                baseFloodElevation,
+                lowestFloorElevation,
+                amountPaidOnBuildingClaim,
+                buildingDamageAmount,
+                totalBuildingInsuranceCoverage,
+                netBuildingPaymentAmount,
+                causeOfDamage,
+                occupancyType) %>%
+  dplyr::filter(!rowSums(is.na(.)) > 0) %>%
+  mutate(causeOfDamage = case_when(as.character(causeOfDamage) == "0" ~ "Other",
+                                   as.character(causeOfDamage) == "1" ~ "Tidal water",
+                                   as.character(causeOfDamage) == "2" ~ "Lake overflow",
+                                   as.character(causeOfDamage) == "4" ~ "Rainfall",
+                                   as.character(causeOfDamage) == "9" ~ "Earth movement",
+                                   T ~ as.character(causeOfDamage)),
+         occupancyType = case_when(as.character(occupancyType) == "1" ~ "Single Family",
+                                   as.character(occupancyType) == "2" ~ "2-4 Resident Building",
+                                   as.character(occupancyType) == "3" ~ "4+ Resident Building",
+                                   T ~ as.character(occupancyType)))
+```
+
 Adds all of the ui and server files for the shiny app.
 Each individual component can be viewed in `/app`.
 ```{r load_app_files, echo = FALSE, warning = FALSE, message = FALSE}
@@ -97,9 +123,5 @@ lapply(source_files, source)
 ```
 
 ```{r run_app, echo = FALSE, warning = FALSE, message = FALSE}
-setwd("..")
-
-app <- shinyApp(ui = ui, server = server)
-
-runApp(app)
+shinyApp(ui = ui, server = server)
 ```

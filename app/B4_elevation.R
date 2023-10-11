@@ -3,9 +3,9 @@ server_elevation <- function(input, output, session) {
   # Reactive expression to filter data based on color selection
   filtered_data <- reactive({
     if (input$color == "None") {
-      return(claims_df)
+      return(claim_elevation_df)
     } else {
-      return(claims_df[, c(input$x_axis, input$y_axis, input$color)])
+      return(claim_elevation_df[, c(input$x_axis, input$y_axis, input$color), drop = FALSE])  # Use drop = FALSE to preserve the column as data frame
     }
   })
   
