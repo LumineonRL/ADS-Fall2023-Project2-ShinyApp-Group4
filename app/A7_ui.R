@@ -1,5 +1,5 @@
 ui <- fluidPage(
-  titlePanel("Impacts on Disaster Insurance Claims"),
+  titlePanel("Impact of Flood Insurance Claims"),
   
   tabsetPanel(
     tabPanel("Title", ui_title()),

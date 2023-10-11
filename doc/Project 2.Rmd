@@ -72,7 +72,16 @@ claim_amounts_df <- claims_df %>%
                 ) %>%
   dplyr::filter(!rowSums(is.na(.)) > 0) %>%
   mutate(is_coastal = state %in% coastal_states,
-         payment_exceeds_damage = amountPaidOnBuildingClaim >= buildingDamageAmount)
+         payment_exceeds_damage = amountPaidOnBuildingClaim >= buildingDamageAmount,
+         causeOfDamage = case_when(as.character(causeOfDamage) == "0" ~ "Other",
+                                   as.character(causeOfDamage) == "1" ~ "Tidal water",
+                                   as.character(causeOfDamage) == "2" ~ "Lake overflow",
+                                   as.character(causeOfDamage) == "4" ~ "Rainfall",
+                                   as.character(causeOfDamage) == "9" ~ "Earth movement",
+                                   T ~ as.character(causeOfDamage)))
+
+# causeOfDamage mapping obtained from https://www.fema.gov/openfema-data-page/fima-nfip-redacted-claims-v2
+# Only values with entries in the dataset were used.
 ```
 
 Adds all of the ui and server files for the shiny app.
