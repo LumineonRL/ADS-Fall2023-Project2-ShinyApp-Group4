@@ -39,7 +39,7 @@ Term: Fall 2023
 
 	+ Wenhe Chen: Revised and improved the README section's readability, completeness, and reasonableness. Designed and completed a complex Geospatial Analysis of Floods across States with Heze.
 	+ Daniel Lam:
-	+ Heze Ma:
+	+ Heze Ma: Developed map tab of app. Designed and completed a complex Geospatial Analysis of Floods across States with Whenhe. Extracted and preprocessed data, then implemented the visualization using R Shiny, providing an interactive map for users.
 	+ Shreya Verma: Developed the `Impacts` and `References` tab of app. Did ETL to extract, transform and load the data to do EDA and build interesting visualizations. This also involved data wrangling and processing. Contributed to building the Shiny UI and Server and general code cleanup.
 	+ Michael Wiley: Developed `Payout` tab of app. Turned individual tabs into single app. Wrote functions to manage downloading, loading, and processing data. Code contributions to `Title`, `Elevation`, and `References` tabs. Wrote css for title page. General code and repository cleanup and organization. Managed Github repository including Issues and reviewing PRs. Deployed and hosted app.
 
