@@ -1,6 +1,10 @@
-# Project 2: Shiny App Development
-
 ### Code lib Folder
 
-The lib directory contains various files with function definitions (but only function definitions - no code that actually runs).
+`disaster_background.png` is the background image used for the title page of the app.
+
+`download_data.R` is responsible for downloading all relevant data from the FIMA website and placing it in `/data`.
+
+`load_data.R` is responsible for loading any data files from `/data`.
+
+
 
