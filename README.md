@@ -1,10 +1,15 @@
 # Project 2: Shiny App Development
 
+### Important Project Instructions!
+
+- The main file of this repository is located in `doc/Project 2.Rmd`. That should be the only file needed to run.
+	-- **Please ensure your working directory is properly set to the root of this repository before attempting to run anything.**
+
+- The final deployed app can be found at https://lumineonrl.shinyapps.io/ADS-Fall2023-Project2-ShinyApp-Group4/
+
 ### [Project Description](doc/project2_desc.md)
 
 Term: Fall 2023
-
-![screenshot](doc/figs/map.jpg)
 
 In this second project of GR5243 Applied Data Science, we develop a *Exploratory Data Analysis and Visualization* shiny app using one of **the OpenFEMA data sets** of your choice. See [Project 2 Description](doc/project2_desc.md) for more details.  
 
@@ -15,8 +20,6 @@ The **learning goals** for this project is:
 - data visualization
 - systems development/design life cycle
 - shiny app/shiny server
-
-*The above general statement about project 2 can be removed once you are finished with your project. It is optional.
 
 ## Project Title: Strategic Response of the Insurance Industry to Flood Risk
 Term: Fall 2023
@@ -41,8 +44,7 @@ proj/
 ├── lib/
 ├── data/
 ├── doc/
-└── output/
 ```
 
-Please see each subfolder for a README file.
+Please see each subfolder for an additional README file.
 
