@@ -41,7 +41,7 @@ Term: Fall 2023
 	+ Daniel Lam:
 	+ Heze Ma:
 	+ Shreya Verma:
-	+ Michael Wiley: Developed `Payout` tab of app. Turned individual tabs into single app. Wrote functions to manage downloading, loading, and processing data. Wrote css for title page. General code and repository cleanup and organization. Managed Github repository including Issues and reviewing PRs. Deployed and hosted app.
+	+ Michael Wiley: Developed `Payout` tab of app. Turned individual tabs into single app. Wrote functions to manage downloading, loading, and processing data. Code contributions to `Title`, `Elevation`, and `References` tabs. Wrote css for title page. General code and repository cleanup and organization. Managed Github repository including Issues and reviewing PRs. Deployed and hosted app.
 
 Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
 
