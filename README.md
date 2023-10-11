@@ -29,7 +29,7 @@ Term: Fall 2023
 	+ Shreya Verma
 	+ Michael Wiley
 
-+ **Project summary**: An exploration on the largest contributing factors to the impacts that insurance claims have on disasters. This projects seeks to understand how much insurance is paid out vs the amount covered, as well as identify other contributing factors (such as disaster type, or geographic location of the structure) that may impact the payout of an insurance claim.
++ **Project summary**: This project delves into the related effects of flooding and insurance. It shows the relationship between flooding and insurance claims and how multiple variables, such as the original year of building construction, location, elevation, and damage caused, affect insurance claims. This project provides valuable insights for insurance companies in risk assessment, pricing optimization, strategy development, and customer awareness improvement.
 
 + **Contribution statement**: ([default](doc/a_note_on_contributions.md)) All team members contributed equally in all stages of this project. All team members approve our work presented in this GitHub repository including this contributions statement. 
 
